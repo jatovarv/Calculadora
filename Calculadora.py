@@ -51,44 +51,20 @@ def calcular_honorarios(valor):
             return rango["adicion"] + ((valor - rango["limite_inferior"]) * rango["factor"])
     return 0
 
-def calcular_avaluo(valor, condonacion):
-    return (valor * 1.95 / 1000) * 1.16 if condonacion in [0, 0.10, 0.20] else 0
-
-def calcular_iva(honorarios):
-    return honorarios * 0.16
-
-def calcular_erogaciones():
-    return 16000
-
-def obtener_condonacion(valor_catastral, tipo_operacion):
-    condonaciones = {
-        "herencia": [(2326313.00, 0.80), (2736839.00, 0.40)],
-        "adquisicion": [
-            (448061.00, 0.60), (896120.00, 0.40), (1344180.00, 0.30),
-            (1642105.00, 0.20), (2326313.00, 0.10)
-        ]
-    }
-    for limite, porcentaje in condonaciones.get(tipo_operacion, []):
-        if valor_catastral <= limite:
-            return porcentaje
-    return 0.0
-
 def calcular_total(valor, valor_catastral, tipo_operacion):
-    condonacion = obtener_condonacion(valor_catastral, tipo_operacion)
-    base = valor_catastral if condonacion else valor
+    base = valor_catastral if valor_catastral > 0 else valor
 
-    impuesto = calcular_impuesto_adquisicion(base) * (1 - condonacion)
-    derechos = calcular_derechos_registro(base) * (1 - condonacion)
+    impuesto = calcular_impuesto_adquisicion(base)
+    derechos = calcular_derechos_registro(base)
     honorarios = calcular_honorarios(base)
-    iva = calcular_iva(honorarios)
-    erogaciones = calcular_erogaciones()
-    avaluo = calcular_avaluo(valor, condonacion)
+    iva = honorarios * 0.16
+    erogaciones = 16000
+    avaluo = (valor * 1.95 / 1000) * 1.16
 
     total = impuesto + derechos + honorarios + iva + erogaciones + avaluo
 
     return {
         "Total": total,
-        "Condonación": f"{condonacion * 100}%" if condonacion else "No aplica",
         "Detalles": {
             "Impuesto": impuesto,
             "Derechos": derechos,
@@ -103,7 +79,7 @@ def calcular_total(valor, valor_catastral, tipo_operacion):
 st.title("Calculadora de Gastos Notariales")
 
 valor = st.number_input("Valor del inmueble:", min_value=0.0, format="%f")
-valor_catastral = st.number_input("Valor catastral:", min_value=0.0, format="%f")
+valor_catastral = st.number_input("Valor catastral (opcional):", min_value=0.0, format="%f")
 tipo_operacion = st.selectbox("Tipo de operación:", ["adquisicion", "herencia"])
 
 if st.button("Calcular"):
