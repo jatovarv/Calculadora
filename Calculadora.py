@@ -74,20 +74,34 @@ def calcular_total(valor, valor_catastral, tipo_operacion):
     condonacion = obtener_condonacion(valor_catastral, tipo_operacion)
     base_impuesto = valor_catastral if condonacion > 0 else valor
 
-    impuesto = calcular_impuesto_adquisicion(base_impuesto) * (1 - condonacion)
-    derechos = calcular_derechos_registro(base_impuesto) * (1 - condonacion)
+    # Cálculo con condonación
+    impuesto_con = calcular_impuesto_adquisicion(base_impuesto) * (1 - condonacion)
+    derechos_con = calcular_derechos_registro(base_impuesto) * (1 - condonacion)
+
+    # Cálculo sin condonación (solo si condonación es del 10%)
+    if condonacion == 0.10:
+        impuesto_sin = calcular_impuesto_adquisicion(base_impuesto)
+        derechos_sin = calcular_derechos_registro(base_impuesto)
+    else:
+        impuesto_sin = impuesto_con
+        derechos_sin = derechos_con
+
     honorarios = calcular_honorarios(valor)
     iva = honorarios * 0.16
     erogaciones = 16000
     avaluo = (valor * 1.95 / 1000) * 1.16 if condonacion in [0, 0.10, 0.20] else 0
 
-    total = impuesto + derechos + honorarios + iva + erogaciones + avaluo
+    total_con = impuesto_con + derechos_con + honorarios + iva + erogaciones + avaluo
+    total_sin = impuesto_sin + derechos_sin + honorarios + iva + erogaciones + avaluo
 
     return {
-        "Total": total,
+        "Total Con Condonación": total_con,
+        "Total Sin Condonación": total_sin if condonacion == 0.10 else "No aplica",
         "Detalles": {
-            "Impuesto": impuesto,
-            "Derechos": derechos,
+            "Impuesto Con Condonación": impuesto_con,
+            "Derechos Con Condonación": derechos_con,
+            "Impuesto Sin Condonación": impuesto_sin if condonacion == 0.10 else "No aplica",
+            "Derechos Sin Condonación": derechos_sin if condonacion == 0.10 else "No aplica",
             "Honorarios": honorarios,
             "IVA": iva,
             "Erogaciones": erogaciones,
