@@ -51,18 +51,35 @@ def calcular_honorarios(valor):
             return rango["adicion"] + ((valor - rango["limite_inferior"]) * rango["factor"])
     return 0
 
+def obtener_condonacion(valor_catastral, tipo_operacion):
+    if tipo_operacion == "herencia":
+        if valor_catastral <= 2326313.00:
+            return 0.80
+        elif 2326313.01 <= valor_catastral <= 2736839.00:
+            return 0.40
+    elif tipo_operacion == "adquisicion":
+        if valor_catastral <= 448061.00:
+            return 0.60
+        elif 448061.01 <= valor_catastral <= 896120.00:
+            return 0.40
+        elif 896120.01 <= valor_catastral <= 1344180.00:
+            return 0.30
+        elif 1344180.01 <= valor_catastral <= 1642105.00:
+            return 0.20
+        elif 1642105.01 <= valor_catastral <= 2326313.00:
+            return 0.10
+    return 0.0
+
 def calcular_total(valor, valor_catastral, tipo_operacion):
-    base = valor_catastral if valor_catastral > 0 else valor
+    condonacion = obtener_condonacion(valor_catastral, tipo_operacion)
+    base_impuesto = valor_catastral if condonacion > 0 else valor
 
-    # Aplicar condonación si hay valor catastral
-    condonacion = 0.1 if tipo_operacion == 'adquisicion' and valor_catastral > 0 else 0
-
-    impuesto = calcular_impuesto_adquisicion(base) * (1 - condonacion)
-    derechos = calcular_derechos_registro(base) * (1 - condonacion)
-    honorarios = calcular_honorarios(base)
+    impuesto = calcular_impuesto_adquisicion(base_impuesto) * (1 - condonacion)
+    derechos = calcular_derechos_registro(base_impuesto) * (1 - condonacion)
+    honorarios = calcular_honorarios(valor)
     iva = honorarios * 0.16
     erogaciones = 16000
-    avaluo = (valor * 1.95 / 1000) * 1.16
+    avaluo = (valor * 1.95 / 1000) * 1.16 if condonacion in [0, 0.10, 0.20] else 0
 
     total = impuesto + derechos + honorarios + iva + erogaciones + avaluo
 
