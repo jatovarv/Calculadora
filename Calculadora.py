@@ -91,6 +91,15 @@ def calcular_total_general(valor, valor_catastral, tipo_operacion):
     avaluo = calcular_avaluo(valor_para_calculo)
 
     total_general = impuesto_adquisicion + derechos_registro + honorarios + iva + erogaciones + avaluo
+
+    explicacion_condonacion = ""
+    if condonacion > 0:
+        explicacion_condonacion = (
+            f"Se aplicó una condonación del {condonacion*100}% sobre el valor catastral de ${valor_catastral:,.2f} MXN. "
+            f"Esto significa que el cálculo de impuestos y derechos se realizó considerando un descuento del {condonacion*100}% "
+            f"en los montos correspondientes al Impuesto Sobre Adquisición y Derechos de Registro Público."
+        )
+
     return {
         "Impuesto Adquisición": impuesto_adquisicion,
         "Derechos Registro": derechos_registro,
@@ -99,7 +108,7 @@ def calcular_total_general(valor, valor_catastral, tipo_operacion):
         "Erogaciones": erogaciones,
         "Avalúo": avaluo,
         "Total General": total_general,
-        "Condonación Aplicada": condonacion * 100 if condonacion > 0 else "No aplica"
+        "Explicación de Condonación": explicacion_condonacion
     }
 
 # Interfaz de usuario con Streamlit
@@ -114,21 +123,10 @@ if st.button("Calcular"):
     
     st.subheader("Resultados")
     for key, value in resultados.items():
-        st.write(f"{key}: ${value:,.2f} MXN" if isinstance(value, (int, float)) else f"{key}: {value}%")
+        if key != "Explicación de Condonación":
+            st.write(f"{key}: ${value:,.2f} MXN")
 
-    st.subheader("Explicación de Cálculos")
-    st.markdown("""
-    **Condonación Aplicada:** Se verifica si la operación califica para una condonación basada en el tipo de operación y el valor catastral.
-    
-    **Cálculo de Honorarios:** Se suman los honorarios base y un porcentaje adicional basado en rangos de valor.
+    if resultados["Explicación de Condonación"]:
+        st.subheader("Explicación de la Condonación")
+        st.write(resultados["Explicación de Condonación"])
 
-    **Cálculo del IVA:** Se aplica el 16% sobre los honorarios calculados.
-
-    **Impuesto Sobre Adquisición:** Basado en rangos con un costo fijo más un porcentaje sobre el excedente del límite inferior.
-
-    **Derechos de Registro Público:** Monto fijo dependiendo del rango en el que se encuentra el valor.
-
-    **Avalúo:** Calculado como el 1.95‰ del valor del inmueble, más el 16% de IVA.
-
-    **Erogaciones:** Un monto fijo de 16,000 MXN.
-    """)
