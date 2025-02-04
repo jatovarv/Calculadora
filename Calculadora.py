@@ -54,8 +54,11 @@ def calcular_honorarios(valor):
 def calcular_total(valor, valor_catastral, tipo_operacion):
     base = valor_catastral if valor_catastral > 0 else valor
 
-    impuesto = calcular_impuesto_adquisicion(base)
-    derechos = calcular_derechos_registro(base)
+    # Aplicar condonación si hay valor catastral
+    condonacion = 0.1 if tipo_operacion == 'adquisicion' and valor_catastral > 0 else 0
+
+    impuesto = calcular_impuesto_adquisicion(base) * (1 - condonacion)
+    derechos = calcular_derechos_registro(base) * (1 - condonacion)
     honorarios = calcular_honorarios(base)
     iva = honorarios * 0.16
     erogaciones = 16000
@@ -71,7 +74,8 @@ def calcular_total(valor, valor_catastral, tipo_operacion):
             "Honorarios": honorarios,
             "IVA": iva,
             "Erogaciones": erogaciones,
-            "Avalúo": avaluo
+            "Avalúo": avaluo,
+            "Condonación Aplicada": f"{condonacion * 100}%" if condonacion > 0 else "No aplica"
         }
     }
 
@@ -92,4 +96,4 @@ if st.button("Calcular"):
 
     st.subheader("Detalles")
     for key, value in resultados["Detalles"].items():
-        st.write(f"{key}: ${value:,.2f}")
+        st.write(f"{key}: ${value:,.2f}" if isinstance(value, (int, float)) else f"{key}: {value}")
