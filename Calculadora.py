@@ -52,9 +52,7 @@ def calcular_honorarios(valor):
     return 0
 
 def calcular_avaluo(valor, condonacion):
-    if condonacion in [0.10, 0.20] or condonacion == 0:
-        return (valor * 1.95 / 1000) * 1.16
-    return 0
+    return (valor * 1.95 / 1000) * 1.16 if condonacion in [0, 0.10, 0.20] else 0
 
 def calcular_iva(honorarios):
     return honorarios * 0.16
@@ -63,74 +61,59 @@ def calcular_erogaciones():
     return 16000
 
 def obtener_condonacion(valor_catastral, tipo_operacion):
-    if tipo_operacion == "herencia":
-        if valor_catastral <= 2326313.00:
-            return 0.80
-        elif 2326313.01 <= valor_catastral <= 2736839.00:
-            return 0.40
-    elif tipo_operacion == "adquisicion":
-        if valor_catastral <= 448061.00:
-            return 0.60
-        elif 448061.01 <= valor_catastral <= 896120.00:
-            return 0.40
-        elif 896120.01 <= valor_catastral <= 1344180.00:
-            return 0.30
-        elif 1344180.01 <= valor_catastral <= 1642105.00:
-            return 0.20
-        elif 1642105.01 <= valor_catastral <= 2326313.00:
-            return 0.10
+    condonaciones = {
+        "herencia": [(2326313.00, 0.80), (2736839.00, 0.40)],
+        "adquisicion": [
+            (448061.00, 0.60), (896120.00, 0.40), (1344180.00, 0.30),
+            (1642105.00, 0.20), (2326313.00, 0.10)
+        ]
+    }
+    for limite, porcentaje in condonaciones.get(tipo_operacion, []):
+        if valor_catastral <= limite:
+            return porcentaje
     return 0.0
 
-def calcular_total_general(valor, valor_catastral, tipo_operacion):
+def calcular_total(valor, valor_catastral, tipo_operacion):
     condonacion = obtener_condonacion(valor_catastral, tipo_operacion)
-    valor_para_calculo = valor_catastral if condonacion > 0 else valor
+    base = valor_catastral if condonacion else valor
 
-    # Cálculo sin condonación
-    impuesto_sin_condonacion = calcular_impuesto_adquisicion(valor_para_calculo)
-    derechos_sin_condonacion = calcular_derechos_registro(valor_para_calculo)
-    honorarios_sin_condonacion = calcular_honorarios(valor_para_calculo)
-    iva_sin_condonacion = calcular_iva(honorarios_sin_condonacion)
+    impuesto = calcular_impuesto_adquisicion(base) * (1 - condonacion)
+    derechos = calcular_derechos_registro(base) * (1 - condonacion)
+    honorarios = calcular_honorarios(base)
+    iva = calcular_iva(honorarios)
     erogaciones = calcular_erogaciones()
-    avaluo_sin_condonacion = calcular_avaluo(valor_para_calculo, 0)
+    avaluo = calcular_avaluo(valor, condonacion)
 
-    total_sin_condonacion = impuesto_sin_condonacion + derechos_sin_condonacion + honorarios_sin_condonacion + iva_sin_condonacion + erogaciones + avaluo_sin_condonacion
-
-    # Cálculo con condonación
-    impuesto_con_condonacion = impuesto_sin_condonacion * (1 - condonacion)
-    derechos_con_condonacion = derechos_sin_condonacion * (1 - condonacion)
-    avaluo_con_condonacion = calcular_avaluo(valor_para_calculo, condonacion)
-
-    total_con_condonacion = impuesto_con_condonacion + derechos_con_condonacion + honorarios_sin_condonacion + iva_sin_condonacion + erogaciones + avaluo_con_condonacion
+    total = impuesto + derechos + honorarios + iva + erogaciones + avaluo
 
     return {
-        "Total Sin Condonación": total_sin_condonacion,
-        "Total Con Condonación": total_con_condonacion if condonacion == 0.10 else "No aplica para este porcentaje",
-        "Condonación Aplicada": f"{condonacion * 100}%" if condonacion > 0 else "No aplica",
+        "Total": total,
+        "Condonación": f"{condonacion * 100}%" if condonacion else "No aplica",
         "Detalles": {
-            "Impuesto Sin Condonación": impuesto_sin_condonacion,
-            "Derechos Sin Condonación": derechos_sin_condonacion,
-            "Avalúo Sin Condonación": avaluo_sin_condonacion,
-            "Impuesto Con Condonación": impuesto_con_condonacion,
-            "Derechos Con Condonación": derechos_con_condonacion,
-            "Avalúo Con Condonación": avaluo_con_condonacion
+            "Impuesto": impuesto,
+            "Derechos": derechos,
+            "Honorarios": honorarios,
+            "IVA": iva,
+            "Erogaciones": erogaciones,
+            "Avalúo": avaluo
         }
     }
 
 # Interfaz de usuario con Streamlit
 st.title("Calculadora de Gastos Notariales")
 
-valor = st.number_input("Ingrese el valor del inmueble:", min_value=0.0, format="%f")
-valor_catastral = st.number_input("Ingrese el valor catastral:", min_value=0.0, format="%f")
-tipo_operacion = st.selectbox("Seleccione el tipo de operación:", ["adquisicion", "herencia"])
+valor = st.number_input("Valor del inmueble:", min_value=0.0, format="%f")
+valor_catastral = st.number_input("Valor catastral:", min_value=0.0, format="%f")
+tipo_operacion = st.selectbox("Tipo de operación:", ["adquisicion", "herencia"])
 
 if st.button("Calcular"):
-    resultados = calcular_total_general(valor, valor_catastral, tipo_operacion)
+    resultados = calcular_total(valor, valor_catastral, tipo_operacion)
 
     st.subheader("Resultados")
     for key, value in resultados.items():
         if key != "Detalles":
             st.write(f"{key}: ${value:,.2f}" if isinstance(value, (int, float)) else f"{key}: {value}")
 
-    st.subheader("Detalles del Cálculo")
+    st.subheader("Detalles")
     for key, value in resultados["Detalles"].items():
         st.write(f"{key}: ${value:,.2f}")
