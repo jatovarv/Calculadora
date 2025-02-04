@@ -51,8 +51,10 @@ def calcular_honorarios(valor):
             return rango["adicion"] + ((valor - rango["limite_inferior"]) * rango["factor"])
     return 0
 
-def calcular_avaluo(valor):
-    return (valor * 1.95 / 1000) * 1.16
+def calcular_avaluo(valor, condonacion):
+    if condonacion in [0.10, 0.20] or condonacion == 0:
+        return (valor * 1.95 / 1000) * 1.16
+    return 0
 
 def calcular_iva(honorarios):
     return honorarios * 0.16
@@ -83,32 +85,35 @@ def calcular_total_general(valor, valor_catastral, tipo_operacion):
     condonacion = obtener_condonacion(valor_catastral, tipo_operacion)
     valor_para_calculo = valor_catastral if condonacion > 0 else valor
 
-    impuesto_adquisicion = calcular_impuesto_adquisicion(valor_para_calculo) * (1 - condonacion)
-    derechos_registro = calcular_derechos_registro(valor_para_calculo) * (1 - condonacion)
-    honorarios = calcular_honorarios(valor_para_calculo)
-    iva = calcular_iva(honorarios)
+    # Cálculo sin condonación
+    impuesto_sin_condonacion = calcular_impuesto_adquisicion(valor_para_calculo)
+    derechos_sin_condonacion = calcular_derechos_registro(valor_para_calculo)
+    honorarios_sin_condonacion = calcular_honorarios(valor_para_calculo)
+    iva_sin_condonacion = calcular_iva(honorarios_sin_condonacion)
     erogaciones = calcular_erogaciones()
-    avaluo = calcular_avaluo(valor_para_calculo)
+    avaluo_sin_condonacion = calcular_avaluo(valor_para_calculo, 0)
 
-    total_general = impuesto_adquisicion + derechos_registro + honorarios + iva + erogaciones + avaluo
+    total_sin_condonacion = impuesto_sin_condonacion + derechos_sin_condonacion + honorarios_sin_condonacion + iva_sin_condonacion + erogaciones + avaluo_sin_condonacion
 
-    explicacion_condonacion = ""
-    if condonacion > 0:
-        explicacion_condonacion = (
-            f"Se aplicó una condonación del {condonacion*100}% sobre el valor catastral de ${valor_catastral:,.2f} MXN. "
-            f"Esto significa que el cálculo de impuestos y derechos se realizó considerando un descuento del {condonacion*100}% "
-            f"en los montos correspondientes al Impuesto Sobre Adquisición y Derechos de Registro Público."
-        )
+    # Cálculo con condonación
+    impuesto_con_condonacion = impuesto_sin_condonacion * (1 - condonacion)
+    derechos_con_condonacion = derechos_sin_condonacion * (1 - condonacion)
+    avaluo_con_condonacion = calcular_avaluo(valor_para_calculo, condonacion)
+
+    total_con_condonacion = impuesto_con_condonacion + derechos_con_condonacion + honorarios_sin_condonacion + iva_sin_condonacion + erogaciones + avaluo_con_condonacion
 
     return {
-        "Impuesto Adquisición": impuesto_adquisicion,
-        "Derechos Registro": derechos_registro,
-        "Honorarios": honorarios,
-        "IVA": iva,
-        "Erogaciones": erogaciones,
-        "Avalúo": avaluo,
-        "Total General": total_general,
-        "Explicación de Condonación": explicacion_condonacion
+        "Total Sin Condonación": total_sin_condonacion,
+        "Total Con Condonación": total_con_condonacion if condonacion == 0.10 else "No aplica para este porcentaje",
+        "Condonación Aplicada": f"{condonacion * 100}%" if condonacion > 0 else "No aplica",
+        "Detalles": {
+            "Impuesto Sin Condonación": impuesto_sin_condonacion,
+            "Derechos Sin Condonación": derechos_sin_condonacion,
+            "Avalúo Sin Condonación": avaluo_sin_condonacion,
+            "Impuesto Con Condonación": impuesto_con_condonacion,
+            "Derechos Con Condonación": derechos_con_condonacion,
+            "Avalúo Con Condonación": avaluo_con_condonacion
+        }
     }
 
 # Interfaz de usuario con Streamlit
@@ -120,13 +125,12 @@ tipo_operacion = st.selectbox("Seleccione el tipo de operación:", ["adquisicion
 
 if st.button("Calcular"):
     resultados = calcular_total_general(valor, valor_catastral, tipo_operacion)
-    
+
     st.subheader("Resultados")
     for key, value in resultados.items():
-        if key != "Explicación de Condonación":
-            st.write(f"{key}: ${value:,.2f} MXN")
+        if key != "Detalles":
+            st.write(f"{key}: ${value:,.2f}" if isinstance(value, (int, float)) else f"{key}: {value}")
 
-    if resultados["Explicación de Condonación"]:
-        st.subheader("Explicación de la Condonación")
-        st.write(resultados["Explicación de Condonación"])
-
+    st.subheader("Detalles del Cálculo")
+    for key, value in resultados["Detalles"].items():
+        st.write(f"{key}: ${value:,.2f}")
