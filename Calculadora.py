@@ -126,17 +126,25 @@ def calcular_total(valor_operacion, valor_catastral, tipo_operacion):
 
 # Interfaz de Streamlit
 st.title("Calculadora de Gastos Notariales")
-valor_operacion = st.number_input("Valor del inmueble (operación):", min_value=0.0, format="%f")
-valor_catastral = st.number_input("Valor catastral:", min_value=0.0, format="%f")
-tipo_operacion = st.selectbox("Tipo de operación:", ["adquisicion", "herencia"])
+st.write("Complete los campos para calcular los gastos notariales.")
 
-if st.button("Calcular"):
-    resultados = calcular_total(valor_operacion, valor_catastral, tipo_operacion)
-    st.subheader("Resultados")
-    for key, value in resultados.items():
-        if key != "Detalles":
-            st.write(f"{key}: ${value:,.2f}" if isinstance(value, (int, float)) else f"{key}: {value}")
+# Campos de entrada
+col1, col2 = st.columns(2)
+with col1:
+    valor_operacion = st.number_input("Valor del inmueble (operación):", min_value=0.0, format="%f")
+with col2:
+    valor_catastral_input = st.number_input(
+        "Valor catastral (deje en blanco si es igual al valor de operación):", 
+        min_value=0.0, 
+        format="%f", 
+        value=None
+    )
 
-    st.subheader("Detalles")
-    for key, value in resultados["Detalles"].items():
-        st.write(f"{key}: ${value:,.2f}" if isinstance(value, (int, float)) else f"{key}: {value}")
+# Lógica para el valor catastral
+if valor_catastral_input is None:
+    valor_catastral = valor_operacion
+else:
+    valor_catastral = valor_catastral_input
+
+tipo_operacion = st.selectbox("Tipo de operación:", ["Adquisición", "Herencia"])
+usuario = st.text_input("Nombre del usuario (opcional):")
