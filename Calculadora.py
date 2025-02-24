@@ -1,125 +1,137 @@
 import pandas as pd
 import streamlit as st
+from bisect import bisect_left
 
-# Funciones para el cálculo de impuestos, honorarios, derechos de registro, erogaciones y jornadas
+# Tablas predefinidas como diccionarios para búsquedas rápidas
+IMPUESTO_ADQUISICION = [
+    (0.12, 123988.81, 314.97, 0.01392),
+    (123988.82, 198382.03, 2040.90, 0.02967),
+    (198382.04, 297572.76, 4248.16, 0.03876),
+    (297572.77, 595145.67, 8092.80, 0.04522),
+    (595145.68, 1487864.15, 21549.06, 0.05023),
+    (1487864.16, 2975728.34, 66390.32, 0.05487),
+    (2975728.35, 5732476.11, 148029.44, 0.05952),
+    (5732476.12, float('inf'), 312111.08, 0.06183),
+]
 
+DERECHOS_REGISTRO = [
+    (0.01, 848550.00, 2411.00),
+    (848550.01, 1018260.00, 7233.00),
+    (1018260.01, 1187970.00, 12055.00),
+    (1187970.01, 1357680.00, 16877.00),
+    (1357680.01, float('inf'), 24154.00),
+]
+
+HONORARIOS = [
+    (0.01, 227607.00, 6632.00, 0),
+    (227607.01, 455214.00, 9193.00, 0.01125),
+    (455214.01, 910432.00, 13631.00, 0.00975),
+    (910432.01, 1820862.00, 21142.00, 0.00825),
+    (1820862.01, 3641729.00, 33433.00, 0.00675),
+    (3641729.01, 7283459.00, 54482.00, 0.00578),
+    (7283459.01, 14566923.00, 85073.00, 0.00420),
+    (14566923.01, float('inf'), 0, 0.00327),
+]
+
+CONDONACION_HERENCIA = {2326313.00: 0.80, 2736839.00: 0.40}
+CONDONACION_ADQUISICION = {448061.00: 0.60, 896120.00: 0.40, 1344180.00: 0.30, 1642105.00: 0.20, 2326313.00: 0.10}
+
+# Funciones optimizadas de cálculo
 def calcular_impuesto_adquisicion(valor):
-    tabla = [
-        {"limite_inferior": 0.12, "limite_superior": 123988.81, "costo_fijo": 314.97, "factor": 0.01392},
-        {"limite_inferior": 123988.82, "limite_superior": 198382.03, "costo_fijo": 2040.90, "factor": 0.02967},
-        {"limite_inferior": 198382.04, "limite_superior": 297572.76, "costo_fijo": 4248.16, "factor": 0.03876},
-        {"limite_inferior": 297572.77, "limite_superior": 595145.67, "costo_fijo": 8092.80, "factor": 0.04522},
-        {"limite_inferior": 595145.68, "limite_superior": 1487864.15, "costo_fijo": 21549.06, "factor": 0.05023},
-        {"limite_inferior": 1487864.16, "limite_superior": 2975728.34, "costo_fijo": 66390.32, "factor": 0.05487},
-        {"limite_inferior": 2975728.35, "limite_superior": 5732476.11, "costo_fijo": 148029.44, "factor": 0.05952},
-        {"limite_inferior": 5732476.12, "limite_superior": float('inf'), "costo_fijo": 312111.08, "factor": 0.06183}
-    ]
-
-    for rango in tabla:
-        if rango["limite_inferior"] <= valor <= rango["limite_superior"]:
-            return rango["costo_fijo"] + ((valor - rango["limite_inferior"]) * rango["factor"])
-    return 0
+    limites = [rango[0] for rango in IMPUESTO_ADQUISICION]
+    idx = bisect_left(limites, valor)
+    if idx == 0:
+        return 0
+    lim_inf, _, costo_fijo, factor = IMPUESTO_ADQUISICION[idx - 1]
+    return costo_fijo + (valor - lim_inf) * factor
 
 def calcular_derechos_registro(valor):
-    tabla = [
-        {"limite_inferior": 0.01, "limite_superior": 848550.00, "total": 2411.00},
-        {"limite_inferior": 848550.01, "limite_superior": 1018260.00, "total": 7233.00},
-        {"limite_inferior": 1018260.01, "limite_superior": 1187970.00, "total": 12055.00},
-        {"limite_inferior": 1187970.01, "limite_superior": 1357680.00, "total": 16877.00},
-        {"limite_inferior": 1357680.01, "limite_superior": float('inf'), "total": 24154.00}
-    ]
-
-    for rango in tabla:
-        if rango["limite_inferior"] <= valor <= rango["limite_superior"]:
-            return rango["total"]
-    return 0
+    limites = [rango[0] for rango in DERECHOS_REGISTRO]
+    idx = bisect_left(limites, valor)
+    return DERECHOS_REGISTRO[idx - 1][2] if idx > 0 else 0
 
 def calcular_honorarios(valor):
-    tabla = [
-        {"limite_inferior": 0.01, "limite_superior": 227607.00, "adicion": 6632.00, "factor": 0},
-        {"limite_inferior": 227607.01, "limite_superior": 455214.00, "adicion": 9193.00, "factor": 0.01125},
-        {"limite_inferior": 455214.01, "limite_superior": 910432.00, "adicion": 13631.00, "factor": 0.00975},
-        {"limite_inferior": 910432.01, "limite_superior": 1820862.00, "adicion": 21142.00, "factor": 0.00825},
-        {"limite_inferior": 1820862.01, "limite_superior": 3641729.00, "adicion": 33433.00, "factor": 0.00675},
-        {"limite_inferior": 3641729.01, "limite_superior": 7283459.00, "adicion": 54482.00, "factor": 0.00578},
-        {"limite_inferior": 7283459.01, "limite_superior": 14566923.00, "adicion": 85073.00, "factor": 0.00420},
-        {"limite_inferior": 14566923.01, "limite_superior": float('inf'), "adicion": 0, "factor": 0.00327}
-    ]
-
-    for rango in tabla:
-        if rango["limite_inferior"] <= valor <= rango["limite_superior"]:
-            return rango["adicion"] + ((valor - rango["limite_inferior"]) * rango["factor"])
-    return 0
+    limites = [rango[0] for rango in HONORARIOS]
+    idx = bisect_left(limites, valor)
+    if idx == 0:
+        return 0
+    lim_inf, _, adicion, factor = HONORARIOS[idx - 1]
+    return adicion + (valor - lim_inf) * factor
 
 def obtener_condonacion(valor_catastral, tipo_operacion):
     if tipo_operacion == "herencia":
-        if valor_catastral <= 2326313.00:
-            return 0.80
-        elif 2326313.01 <= valor_catastral <= 2736839.00:
-            return 0.40
+        return next((v for k, v in sorted(CONDONACION_HERENCIA.items()) if valor_catastral <= k), 0.0)
     elif tipo_operacion == "adquisicion":
-        if valor_catastral <= 448061.00:
-            return 0.60
-        elif 448061.01 <= valor_catastral <= 896120.00:
-            return 0.40
-        elif 896120.01 <= valor_catastral <= 1344180.00:
-            return 0.30
-        elif 1344180.01 <= valor_catastral <= 1642105.00:
-            return 0.20
-        elif 1642105.01 <= valor_catastral <= 2326313.00:
-            return 0.10
+        return next((v for k, v in sorted(CONDONACION_ADQUISICION.items()) if valor_catastral <= k), 0.0)
     return 0.0
 
-def calcular_total(valor, valor_catastral, tipo_operacion):
+def calcular_total(valor_operacion, valor_catastral, tipo_operacion):
     condonacion = obtener_condonacion(valor_catastral, tipo_operacion)
-    base_impuesto = valor_catastral if condonacion > 0 else valor
 
-    # Cálculo con condonación
-    impuesto_con = calcular_impuesto_adquisicion(base_impuesto) * (1 - condonacion)
-    derechos_con = calcular_derechos_registro(base_impuesto) * (1 - condonacion)
-
-    # Cálculo sin condonación (solo si condonación es del 10%)
-    if condonacion == 0.10:
-        impuesto_sin = calcular_impuesto_adquisicion(base_impuesto)
-        derechos_sin = calcular_derechos_registro(base_impuesto)
-    else:
-        impuesto_sin = impuesto_con
-        derechos_sin = derechos_con
-
-    honorarios = calcular_honorarios(valor)
+    # Cálculos comunes (siempre con valor de operación)
+    honorarios = calcular_honorarios(valor_operacion)
     iva = honorarios * 0.16
     erogaciones = 16000
-    avaluo = (valor * 1.95 / 1000) * 1.16 if condonacion in [0, 0.10, 0.20] else 0
+    avaluo = (valor_operacion * 0.00195) * 1.16 if condonacion in {0, 0.10, 0.20} else 0
 
-    total_con = impuesto_con + derechos_con + honorarios + iva + erogaciones + avaluo
-    total_sin = impuesto_sin + derechos_sin + honorarios + iva + erogaciones + avaluo
-
-    return {
-        "Total Con Condonación": total_con,
-        "Total Sin Condonación": total_sin if condonacion == 0.10 else "No aplica",
-        "Detalles": {
+    if condonacion > 0:
+        # Con condonación: Usamos valor catastral para impuesto y derechos
+        impuesto_con = calcular_impuesto_adquisicion(valor_catastral) * (1 - condonacion)
+        derechos_con = calcular_derechos_registro(valor_catastral) * (1 - condonacion)
+        total_con = impuesto_con + derechos_con + honorarios + iva + erogaciones + avaluo
+        detalles = {
             "Impuesto Con Condonación": impuesto_con,
             "Derechos Con Condonación": derechos_con,
-            "Impuesto Sin Condonación": impuesto_sin if condonacion == 0.10 else "No aplica",
-            "Derechos Sin Condonación": derechos_sin if condonacion == 0.10 else "No aplica",
             "Honorarios": honorarios,
             "IVA": iva,
             "Erogaciones": erogaciones,
             "Avalúo": avaluo,
-            "Condonación Aplicada": f"{condonacion * 100}%" if condonacion > 0 else "No aplica"
+            "Condonación Aplicada": f"{condonacion * 100}%",
         }
-    }
+        resultados = {"Total Con Condonación": total_con}
 
-# Interfaz de usuario con Streamlit
+        if condonacion == 0.10:
+            # Sin condonación: Usamos valor de operación para impuesto y derechos
+            impuesto_sin = calcular_impuesto_adquisicion(valor_operacion)
+            derechos_sin = calcular_derechos_registro(valor_operacion)
+            total_sin = impuesto_sin + derechos_sin + honorarios + iva + erogaciones + avaluo
+            resultados["Total Sin Condonación"] = total_sin
+            detalles.update({
+                "Impuesto Sin Condonación": impuesto_sin,
+                "Derechos Sin Condonación": derechos_sin,
+            })
+        else:
+            detalles.update({
+                "Impuesto Sin Condonación": "No aplica",
+                "Derechos Sin Condonación": "No aplica",
+            })
+    else:
+        # Sin condonación: Usamos valor de operación para todo
+        impuesto = calcular_impuesto_adquisicion(valor_operacion)
+        derechos = calcular_derechos_registro(valor_operacion)
+        total = impuesto + derechos + honorarios + iva + erogaciones + avaluo
+        resultados = {"Total": total}
+        detalles = {
+            "Impuesto": impuesto,
+            "Derechos": derechos,
+            "Honorarios": honorarios,
+            "IVA": iva,
+            "Erogaciones": erogaciones,
+            "Avalúo": avaluo,
+            "Condonación Aplicada": "No aplica",
+        }
+
+    resultados["Detalles"] = detalles
+    return resultados
+
+# Interfaz de Streamlit
 st.title("Calculadora de Gastos Notariales")
-
-valor = st.number_input("Valor del inmueble:", min_value=0.0, format="%f")
-valor_catastral = st.number_input("Valor catastral (opcional):", min_value=0.0, format="%f")
+valor_operacion = st.number_input("Valor del inmueble (operación):", min_value=0.0, format="%f")
+valor_catastral = st.number_input("Valor catastral:", min_value=0.0, format="%f")
 tipo_operacion = st.selectbox("Tipo de operación:", ["adquisicion", "herencia"])
 
 if st.button("Calcular"):
-    resultados = calcular_total(valor, valor_catastral, tipo_operacion)
-
+    resultados = calcular_total(valor_operacion, valor_catastral, tipo_operacion)
     st.subheader("Resultados")
     for key, value in resultados.items():
         if key != "Detalles":
