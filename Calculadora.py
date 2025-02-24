@@ -162,8 +162,9 @@ def generar_pdf(resultados, usuario):
     return pdf_file
 
 # Interfaz de Streamlit
-st.title("Calculadora de Gastos Notariales")
-st.write("Complete los campos para calcular los gastos notariales.")
+st.title("Calculadora de Impuestos, Derechos, Gastos y Honorarios")
+st.write("Proporcione los valores para realizar su Cotización.")
+st.write("Todos los derecgos reservados. Jaime Alberto Tovar.")
 
 # Campos de entrada
 col1, col2 = st.columns(2)
@@ -171,7 +172,7 @@ with col1:
     valor_operacion = st.number_input("Valor del inmueble (operación):", min_value=0.0, format="%f")
 with col2:
     valor_catastral_input = st.number_input(
-        "Valor catastral (deje en blanco si es igual al valor de operación):", 
+        "Valor catastral (Opcional):", 
         min_value=0.0, 
         format="%f", 
         value=None
