@@ -1,6 +1,8 @@
 import pandas as pd
 import streamlit as st
 from bisect import bisect_left
+from fpdf import FPDF
+import datetime
 
 # Tablas predefinidas como diccionarios para búsquedas rápidas
 IMPUESTO_ADQUISICION = [
@@ -124,9 +126,44 @@ def calcular_total(valor_operacion, valor_catastral, tipo_operacion):
     resultados["Detalles"] = detalles
     return resultados
 
+# Interfaz de pdf
+def generar_pdf(resultados, usuario):
+    pdf = FPDF()
+    pdf.add_page()
+    
+    # Encabezado
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, "Reporte de Gastos Notariales", ln=True, align="C")
+    pdf.set_font("Arial", "", 12)
+    pdf.cell(0, 10, f"Fecha: {datetime.date.today()}", ln=True, align="L")
+    if usuario:
+        pdf.cell(0, 10, f"Realizado por: {usuario}", ln=True, align="L")
+    pdf.ln(10)
+
+    # Tabla de detalles
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(100, 10, "Concepto", 1)
+    pdf.cell(50, 10, "Valor", 1, ln=True)
+    pdf.set_font("Arial", "", 12)
+    for key, value in resultados["Detalles"].items():
+        pdf.cell(100, 10, key, 1)
+        pdf.cell(50, 10, f"${value:,.2f}" if isinstance(value, (int, float)) else value, 1, ln=True)
+
+    # Totales
+    pdf.ln(10)
+    pdf.set_font("Arial", "B", 12)
+    for key, value in resultados.items():
+        if key != "Detalles":
+            pdf.cell(100, 10, key, 1)
+            pdf.cell(50, 10, f"${value:,.2f}" if isinstance(value, (int, float)) else value, 1, ln=True)
+
+    pdf_file = "reporte_gastos_notariales.pdf"
+    pdf.output(pdf_file)
+    return pdf_file
+
 # Interfaz de Streamlit
-st.title("Calculadora de Impuestos, Derechos, Gastos Erogacines y Honorarios")
-st.write("Para empezar, añada valor de operación y en su caso Catastral")
+st.title("Calculadora de Gastos Notariales")
+st.write("Complete los campos para calcular los gastos notariales.")
 
 # Campos de entrada
 col1, col2 = st.columns(2)
@@ -134,7 +171,7 @@ with col1:
     valor_operacion = st.number_input("Valor del inmueble (operación):", min_value=0.0, format="%f")
 with col2:
     valor_catastral_input = st.number_input(
-        "Valor catastral (opcional):", 
+        "Valor catastral (deje en blanco si es igual al valor de operación):", 
         min_value=0.0, 
         format="%f", 
         value=None
@@ -148,3 +185,13 @@ else:
 
 tipo_operacion = st.selectbox("Tipo de operación:", ["Adquisición", "Herencia"])
 usuario = st.text_input("Nombre del usuario (opcional):")
+
+if st.button("Calcular"):
+    resultados = calcular_total(valor_operacion, valor_catastral, tipo_operacion)  # Tu función de cálculo
+    st.subheader("Resultados")
+    st.json(resultados)  # Mostrar resultados en pantalla
+
+    # Generar y descargar PDF
+    pdf_file = generar_pdf(resultados, usuario)
+    with open(pdf_file, "rb") as f:
+        st.download_button("Imprimir (Descargar PDF)", f, file_name="reporte_gastos_notariales.pdf")
