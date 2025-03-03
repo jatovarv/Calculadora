@@ -184,7 +184,7 @@ def generar_pdf(resultados, usuario, valor_operacion, valor_catastral, condonaci
     return pdf_file
 
 # Interfaz de Streamlit
-st.title("Calculadora de Impuestos, Derechos, Gastos y Honorarios")
+st.title("Calculadora de Impuestos, Derechos, Gastos y Honorarios CDMX")
 st.write("Proporcione los valores para realizar su Cotización.")
 st.write("Todos los derechos reservados. Jaime Alberto Tovar.")
 
