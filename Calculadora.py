@@ -96,8 +96,8 @@ def calcular_total(valor_operacion, valor_catastral, tipo_operacion):
         derechos_con = calcular_derechos_registro(valor_catastral) * (1 - condonacion)
         total_con = impuesto_con + derechos_con + honorarios + iva + erogaciones + avaluo
         detalles = {
-            "Impuesto Con Condonación": impuesto_con,
-            "Derechos Con Condonación": derechos_con,
+            "ISAI Con Condonación": impuesto_con,
+            "Derechos RPP Con Condonación": derechos_con,
             "Honorarios": honorarios,
             "IVA": iva,
             "Erogaciones": erogaciones,
