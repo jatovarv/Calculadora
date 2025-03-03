@@ -182,20 +182,40 @@ def generar_pdf(resultados, usuario, valor_operacion, valor_catastral, condonaci
     pdf_file = "reporte_gastos_notariales.pdf"
     pdf.output(pdf_file)
     return pdf_file
-
-# Interfaz de Streamlit
-st.title("Calculadora de Impuestos, Derechos, Gastos y Honorarios CDMX")
+    
+# Nueva función para visualizar resultados
+def mostrar_resultados(resultados):
+    """Muestra el diccionario resultados en una tabla y totales destacados."""
+    # Extraer detalles
+    detalles = resultados["Detalles"]
+    
+    # Crear DataFrame para la tabla
+    df = pd.DataFrame(list(detalles.items()), columns=["Concepto", "Valor"])
+    
+    # Mostrar tabla en Streamlit
+    st.subheader("Detalles del Cálculo")
+    st.table(df)
+    
+    # Mostrar totales con formato
+    st.subheader("Totales")
+    if "Total Con Condonación" in resultados:
+        st.markdown(f"**Total Con Condonación:** ${resultados['Total Con Condonación']:,.2f}")
+    if "Total Sin Condonación" in resultados:
+        st.markdown(f"**Total Sin Condonación:** ${resultados['Total Sin Condonación']:,.2f}")
+    if "Total" in resultados:
+        st.markdown(f"**Total:** ${resultados['Total']:,.2f}")
+        
+# Interfaz de Streamlit (modificada solo en la sección de resultados)
+st.title("Calculadora de Impuestos, Derechos, Gastos y Honorarios")
 st.write("Proporcione los valores para realizar su Cotización.")
 st.write("Todos los derechos reservados. Jaime Alberto Tovar.")
 
-# Campos de entrada con claves únicas
 col1, col2 = st.columns(2)
 with col1:
     valor_operacion = st.number_input("Valor del inmueble (operación):", min_value=0.0, format="%f", key="valor_operacion")
 with col2:
     valor_catastral_input = st.number_input("Valor catastral (Opcional):", min_value=0.0, format="%f", value=None, key="valor_catastral")
 
-# Lógica para el valor catastral
 if valor_catastral_input is None:
     valor_catastral = valor_operacion
 else:
@@ -206,10 +226,10 @@ usuario = st.text_input("Nombre del usuario (opcional):", key="usuario")
 
 if st.button("Calcular", key="calcular"):
     resultados, condonacion = calcular_total(valor_operacion, valor_catastral, tipo_operacion)
-    st.subheader("Resultados")
-    st.json(resultados)
     
-    # Generar y descargar PDF
+    # Cambio clave: usar la nueva función en lugar de st.json
+    mostrar_resultados(resultados)
+    
     pdf_file = generar_pdf(resultados, usuario, valor_operacion, valor_catastral, condonacion)
     with open(pdf_file, "rb") as f:
         st.download_button("Imprimir (Descargar PDF)", f, file_name="reporte_gastos_notariales.pdf", key="descargar_pdf")
