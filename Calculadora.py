@@ -7,7 +7,7 @@ import unicodedata
 import logging
 import time
 
-# Configuramos el archivo de log para guardar las acciones
+# Configuramos el archivo de log
 logging.basicConfig(filename='uso_beta.log', level=logging.INFO, 
                     format='%(asctime)s - %(message)s')
 
@@ -31,30 +31,52 @@ def mostrar_pagina_correo():
 
 # Función para mostrar la calculadora
 def mostrar_calculadora():
-    st.title("Calculadora Beta")
-    st.write(f"Bienvenido, {st.session_state['email']}. Aquí está tu calculadora.")
+    st.title("Calculadora de Impuestos, Derechos, Gastos y Honorarios CDMX")
+    st.write(f"Bienvenido, {st.session_state['email']}. Proporcione los valores para realizar su Cotización.")
+    st.write("Todos los derechos reservados. Jaime Alberto Tovar.")
 
-    # Ejemplo simple de calculadora (ajusta esto a tu calculadora real)
-    numero1 = st.number_input("Ingresa el primer número", value=0.0)
-    numero2 = st.number_input("Ingresa el segundo número", value=0.0)
-    if st.button("Sumar"):
-        resultado = numero1 + numero2
-        st.write(f"El resultado es: {resultado}")
-        log_action(st.session_state["email"], f"Sumó {numero1} + {numero2} = {resultado}")
+    col1, col2 = st.columns(2)
+    with col1:
+        valor_operacion = st.number_input("Valor del inmueble (operación):", min_value=0.0, format="%f", key="valor_operacion")
+    with col2:
+        valor_catastral_input = st.number_input("Valor catastral (Opcional):", min_value=0.0, format="%f", value=None, key="valor_catastral")
 
-    # Botón para terminar la sesión
+    if valor_catastral_input is None:
+        valor_catastral = valor_operacion
+    else:
+        valor_catastral = valor_catastral_input
+
+    tipo_operacion = st.selectbox("Tipo de operación:", ["adquisicion", "Herencia"], key="tipo_operacion").lower()
+    usuario = st.text_input("Nombre del usuario (opcional):", key="usuario")
+
+    if st.button("Calcular", key="calcular"):
+        resultados, condonacion = calcular_total(valor_operacion, valor_catastral, tipo_operacion)
+        mostrar_resultados(resultados)
+        pdf_file = generar_pdf(resultados, usuario, valor_operacion, valor_catastral, condonacion)
+        with open(pdf_file, "rb") as f:
+            st.download_button("Imprimir (Descargar PDF)", f, file_name="reporte_gastos_notariales.pdf", key="descargar_pdf")
+        log_action(st.session_state["email"], f"Cálculo realizado - Valor operación: {valor_operacion}, Valor catastral: {valor_catastral}")
+
+    # Campo para el código secreto
+    codigo_secreto = st.text_input("Código administrativo (para administradores)", type="password")
+    if codigo_secreto == "13A080306d":  # Cambia esto por tu propio código
+        try:
+            with open('uso_beta.log', 'rb') as file:
+                st.download_button(
+                    label="Descargar log",
+                    data=file,
+                    file_name="uso_beta.log",
+                    mime="text/plain"
+                )
+        except FileNotFoundError:
+            st.error("El archivo de log aún no está disponible.")
+
     if st.button("Terminar"):
         tiempo_total = time.time() - st.session_state["start_time"]
         log_action(st.session_state["email"], f"Terminó la sesión - Tiempo total: {tiempo_total:.2f} segundos")
         del st.session_state["email"]
         del st.session_state["start_time"]
-        st.experimental_rerun()  # Vuelve a la pantalla de correo
-
-# Control del flujo de la aplicación
-if "email" not in st.session_state:
-    mostrar_pagina_correo()
-else:
-    mostrar_calculadora()
+        st.experimental_rerun()
 
 # Tablas predefinidas como diccionarios para búsquedas rápidas
 IMPUESTO_ADQUISICION = [
@@ -92,7 +114,6 @@ CONDONACION_ADQUISICION = {448061.00: 0.60, 896120.00: 0.40, 1344180.00: 0.30, 1
 
 # Funciones optimizadas de cálculo
 def normalize_text(text):
-    # Elimina acentos y normaliza el texto
     return ''.join(c for c in unicodedata.normalize('NFD', text) if unicodedata.category(c) != 'Mn')
 
 def calcular_impuesto_adquisicion(valor):
@@ -118,8 +139,6 @@ def calcular_honorarios(valor):
 
 def obtener_condonacion(valor_catastral, tipo_operacion):
     tipo_operacion = normalize_text(tipo_operacion.lower())
-    print(f"DEBUG: tipo_operacion normalizado = '{tipo_operacion}'")
-    
     if tipo_operacion == "herencia":
         for k, v in sorted(CONDONACION_HERENCIA.items()):
             if valor_catastral <= k:
@@ -135,14 +154,12 @@ def obtener_condonacion(valor_catastral, tipo_operacion):
 def calcular_total(valor_operacion, valor_catastral, tipo_operacion):
     condonacion = obtener_condonacion(valor_catastral, tipo_operacion)
     
-    # Cálculos comunes (siempre con valor de operación)
     honorarios = calcular_honorarios(valor_operacion)
     iva = honorarios * 0.16
     erogaciones = 16000
     avaluo = (valor_operacion * 0.00195) * 1.16 if condonacion in {0, 0.10, 0.20} else 0
     
     if condonacion > 0:
-        # Con condonación: Usamos valor catastral para impuesto y derechos
         impuesto_con = calcular_impuesto_adquisicion(valor_catastral) * (1 - condonacion)
         derechos_con = calcular_derechos_registro(valor_catastral) * (1 - condonacion)
         total_con = impuesto_con + derechos_con + honorarios + iva + erogaciones + avaluo
@@ -158,7 +175,6 @@ def calcular_total(valor_operacion, valor_catastral, tipo_operacion):
         resultados = {"Total Con Condonación": total_con}
         
         if condonacion == 0.10:
-            # Sin condonación: Usamos valor de operación para impuesto y derechos
             impuesto_sin = calcular_impuesto_adquisicion(valor_operacion)
             derechos_sin = calcular_derechos_registro(valor_operacion)
             total_sin = impuesto_sin + derechos_sin + honorarios + iva + erogaciones + avaluo
@@ -167,10 +183,7 @@ def calcular_total(valor_operacion, valor_catastral, tipo_operacion):
                 "ISAI Sin Condonación": impuesto_sin,
                 "Derechos Sin Condonación": derechos_sin,
             })
-        # No se añaden claves con 'No aplica' cuando condonacion != 0.10
-    
     else:
-        # Sin condonación: Usamos valor de operación para todo
         impuesto = calcular_impuesto_adquisicion(valor_operacion)
         derechos = calcular_derechos_registro(valor_operacion)
         total = impuesto + derechos + honorarios + iva + erogaciones + avaluo
@@ -192,7 +205,6 @@ def generar_pdf(resultados, usuario, valor_operacion, valor_catastral, condonaci
     pdf = FPDF()
     pdf.add_page()
     
-    # Encabezado
     pdf.set_font("Arial", "B", 16)
     pdf.cell(0, 10, "Reporte de Gastos Notariales", ln=True, align="C")
     pdf.set_font("Arial", "", 12)
@@ -201,7 +213,6 @@ def generar_pdf(resultados, usuario, valor_operacion, valor_catastral, condonaci
         pdf.cell(0, 10, f"Realizado por: {usuario}", ln=True, align="L")
     pdf.ln(10)
     
-    # Información adicional sobre los valores utilizados
     pdf.set_font("Arial", "B", 12)
     pdf.cell(0, 10, "Valores Utilizados:", ln=True)
     pdf.set_font("Arial", "", 12)
@@ -213,7 +224,6 @@ def generar_pdf(resultados, usuario, valor_operacion, valor_catastral, condonaci
         pdf.cell(0, 10, f"Valor de operación: ${valor_operacion:,.2f}", ln=True)
     pdf.ln(10)
     
-    # Tabla de detalles
     pdf.set_font("Arial", "B", 12)
     pdf.cell(100, 10, "Concepto", 1)
     pdf.cell(50, 10, "Valor", 1, ln=True)
@@ -222,7 +232,6 @@ def generar_pdf(resultados, usuario, valor_operacion, valor_catastral, condonaci
         pdf.cell(100, 10, key, 1)
         pdf.cell(50, 10, f"${value:,.2f}" if isinstance(value, (int, float)) else value, 1, ln=True)
     
-    # Totales
     pdf.ln(10)
     pdf.set_font("Arial", "B", 12)
     for key, value in resultados.items():
@@ -233,29 +242,21 @@ def generar_pdf(resultados, usuario, valor_operacion, valor_catastral, condonaci
     pdf_file = "reporte_gastos_notariales.pdf"
     pdf.output(pdf_file)
     return pdf_file
-    
-# Nueva función para visualizar resultados
-def mostrar_resultados(resultados):
-    """Muestra el diccionario resultados en una tabla y totales destacados."""
-    # Extraer detalles
-    detalles = resultados["Detalles"]
 
-    # Formatear los valores numéricos a dos decimales
+def mostrar_resultados(resultados):
+    detalles = resultados["Detalles"]
     formatted_detalles = {}
     for key, value in detalles.items():
         if isinstance(value, (int, float)):
-            formatted_detalles[key] = f"${value:,.2f}"  # Formato monetario con dos decimales
+            formatted_detalles[key] = f"${value:,.2f}"
         else:
-            formatted_detalles[key] = value  # Mantener como está si no es numérico
+            formatted_detalles[key] = value
     
-    # Crear DataFrame para la tabla usando los valores formateados
     df = pd.DataFrame(list(formatted_detalles.items()), columns=["Concepto", "Valor"])
     
-    # Mostrar tabla en Streamlit
     st.subheader("Detalles del Cálculo")
     st.table(df)
     
-    # Mostrar totales con formato
     st.subheader("Totales")
     if "Total Con Condonación" in resultados:
         st.markdown(f"**Total Con Condonación:** ${resultados['Total Con Condonación']:,.2f}")
@@ -263,32 +264,9 @@ def mostrar_resultados(resultados):
         st.markdown(f"**Total Sin Condonación:** ${resultados['Total Sin Condonación']:,.2f}")
     if "Total" in resultados:
         st.markdown(f"**Total:** ${resultados['Total']:,.2f}")
-        
-# Interfaz de Streamlit (modificada solo en la sección de resultados)
-st.title("Calculadora de Impuestos, Derechos, Gastos y Honorarios CDMX")
-st.write("Proporcione los valores para realizar su Cotización.")
-st.write("Todos los derechos reservados. Jaime Alberto Tovar.")
 
-col1, col2 = st.columns(2)
-with col1:
-    valor_operacion = st.number_input("Valor del inmueble (operación):", min_value=0.0, format="%f", key="valor_operacion")
-with col2:
-    valor_catastral_input = st.number_input("Valor catastral (Opcional):", min_value=0.0, format="%f", value=None, key="valor_catastral")
-
-if valor_catastral_input is None:
-    valor_catastral = valor_operacion
+# Control del flujo principal
+if "email" not in st.session_state:
+    mostrar_pagina_correo()
 else:
-    valor_catastral = valor_catastral_input
-
-tipo_operacion = st.selectbox("Tipo de operación:", ["adquisicion", "Herencia"], key="tipo_operacion").lower()
-usuario = st.text_input("Nombre del usuario (opcional):", key="usuario")
-
-if st.button("Calcular", key="calcular"):
-    resultados, condonacion = calcular_total(valor_operacion, valor_catastral, tipo_operacion)
-    
-    # Cambio clave: usar la nueva función en lugar de st.json
-    mostrar_resultados(resultados)
-    
-    pdf_file = generar_pdf(resultados, usuario, valor_operacion, valor_catastral, condonacion)
-    with open(pdf_file, "rb") as f:
-        st.download_button("Imprimir (Descargar PDF)", f, file_name="reporte_gastos_notariales.pdf", key="descargar_pdf")
+    mostrar_calculadora()
