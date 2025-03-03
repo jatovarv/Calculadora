@@ -61,6 +61,7 @@ def calcular_honorarios(valor):
     return adicion + (valor - lim_inf) * factor
 
 def obtener_condonacion(valor_catastral, tipo_operacion):
+    tipo_operacion = tipo_operacion.lower()
     if tipo_operacion == "herencia":
         return next((v for k, v in sorted(CONDONACION_HERENCIA.items()) if valor_catastral <= k), 0.0)
     elif tipo_operacion == "adquisicion":
@@ -126,6 +127,37 @@ def calcular_total(valor_operacion, valor_catastral, tipo_operacion):
     resultados["Detalles"] = detalles
     return resultados
 
+# Interfaz de Streamlit
+st.title("Calculadora de Impuestos, Derechos, Gastos y Honorarios")
+st.write("Proporcione los valores para realizar su Cotización.")
+st.write("Todos los derechos reservados. Jaime Alberto Tovar.")
+
+# Campos de entrada
+col1, col2 = st.columns(2)
+with col1:
+    valor_operacion = st.number_input("Valor del inmueble (operación):", min_value=0.0, format="%f")
+with col2:
+    valor_catastral_input = st.number_input(
+        "Valor catastral (Opcional):", 
+        min_value=0.0, 
+        format="%f", 
+        value=None
+    )
+
+# Lógica para el valor catastral
+if valor_catastral_input is None:
+    valor_catastral = valor_operacion
+else:
+    valor_catastral = valor_catastral_input
+
+tipo_operacion = st.selectbox("Tipo de operación:", ["Adquisición", "Herencia"]).lower()
+usuario = st.text_input("Nombre del usuario (opcional):")
+
+if st.button("Calcular"):
+    resultados = calcular_total(valor_operacion, valor_catastral, tipo_operacion)
+    st.subheader("Resultados")
+    st.json(resultados)
+    
 # Interfaz de pdf
 def generar_pdf(resultados, usuario):
     pdf = FPDF()
