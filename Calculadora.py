@@ -197,8 +197,8 @@ def mostrar_resultados(resultados):
         else:
             formatted_detalles[key] = value  # Mantener como está si no es numérico
     
-    # Crear DataFrame para la tabla
-    df = pd.DataFrame(list(detalles.items()), columns=["Concepto", "Valor"])
+    # Crear DataFrame para la tabla usando los valores formateados
+    df = pd.DataFrame(list(formatted_detalles.items()), columns=["Concepto", "Valor"])
     
     # Mostrar tabla en Streamlit
     st.subheader("Detalles del Cálculo")
