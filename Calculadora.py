@@ -125,9 +125,9 @@ def calcular_total(valor_operacion, valor_catastral, tipo_operacion):
         }
 
     resultados["Detalles"] = detalles
-    return resultados
+    return resultados, condonacion  # Devolvemos también condonacion para usarlo en el PDF
 
-def generar_pdf(resultados, usuario):
+def generar_pdf(resultados, usuario, valor_operacion, valor_catastral, condonacion):
     pdf = FPDF()
     pdf.add_page()
     
@@ -138,6 +138,18 @@ def generar_pdf(resultados, usuario):
     pdf.cell(0, 10, f"Fecha: {datetime.date.today()}", ln=True, align="L")
     if usuario:
         pdf.cell(0, 10, f"Realizado por: {usuario}", ln=True, align="L")
+    pdf.ln(10)
+
+    # Información adicional sobre los valores utilizados
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 10, "Valores Utilizados:", ln=True)
+    pdf.set_font("Arial", "", 12)
+    if condonacion > 0:
+        pdf.cell(0, 10, f"Con condonación: ${valor_catastral:,.2f}", ln=True)
+        if condonacion == 0.10:
+            pdf.cell(0, 10, f"Sin condonación: ${valor_operacion:,.2f}", ln=True)
+    else:
+        pdf.cell(0, 10, f"Valor de operación: ${valor_operacion:,.2f}", ln=True)
     pdf.ln(10)
 
     # Tabla de detalles
@@ -183,12 +195,12 @@ tipo_operacion = st.selectbox("Tipo de operación:", ["Adquisición", "Herencia"
 usuario = st.text_input("Nombre del usuario (opcional):", key="usuario")
 
 if st.button("Calcular", key="calcular"):
-    resultados = calcular_total(valor_operacion, valor_catastral, tipo_operacion)
+    resultados, condonacion = calcular_total(valor_operacion, valor_catastral, tipo_operacion)
     st.subheader("Resultados")
     st.json(resultados)
     
     # Generar y descargar PDF
-    pdf_file = generar_pdf(resultados, usuario)
+    pdf_file = generar_pdf(resultados, usuario, valor_operacion, valor_catastral, condonacion)
     with open(pdf_file, "rb") as f:
         st.download_button("Imprimir (Descargar PDF)", f, file_name="reporte_gastos_notariales.pdf", key="descargar_pdf")
         
