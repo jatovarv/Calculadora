@@ -206,7 +206,7 @@ def mostrar_resultados(resultados):
         st.markdown(f"**Total:** ${resultados['Total']:,.2f}")
         
 # Interfaz de Streamlit (modificada solo en la sección de resultados)
-st.title("Calculadora de Impuestos, Derechos, Gastos y Honorarios")
+st.title("Calculadora de Impuestos, Derechos, Gastos y Honorarios CDMX")
 st.write("Proporcione los valores para realizar su Cotización.")
 st.write("Todos los derechos reservados. Jaime Alberto Tovar.")
 
