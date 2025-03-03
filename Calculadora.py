@@ -25,7 +25,7 @@ def mostrar_pagina_correo():
             st.session_state["email"] = email
             log_action(email, "Inicio de sesión")
             st.session_state["start_time"] = time.time()  # Guardamos el tiempo de inicio
-            st.experimental_rerun()  # Recarga la página para mostrar la calculadora
+            st.rerun()  # Recarga la página para mostrar la calculadora
         else:
             st.error("Por favor, ingresa un correo válido.")
 
@@ -76,7 +76,7 @@ def mostrar_calculadora():
         log_action(st.session_state["email"], f"Terminó la sesión - Tiempo total: {tiempo_total:.2f} segundos")
         del st.session_state["email"]
         del st.session_state["start_time"]
-        st.experimental_rerun()
+        st.rerun()
 
 # Tablas predefinidas como diccionarios para búsquedas rápidas
 IMPUESTO_ADQUISICION = [
