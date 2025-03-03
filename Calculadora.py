@@ -57,7 +57,17 @@ def mostrar_calculadora():
             st.download_button("Imprimir (Descargar PDF)", f, file_name="reporte_gastos_notariales.pdf", key="descargar_pdf")
         log_action(st.session_state["email"], f"Cálculo realizado - Valor operación: {valor_operacion}, Valor catastral: {valor_catastral}")
 
-    # Campo para el código secreto
+  # Espacio para comentarios (antes de la clave del administrador)
+    st.subheader("Comentarios")
+    comentario = st.text_area("¿Tienes algún comentario o sugerencia sobre la calculadora? Escríbelo aquí:")
+    if st.button("Enviar comentario"):
+        if comentario:
+            log_action(st.session_state["email"], f"Comentario: {comentario}")
+            st.success("¡Gracias por tu comentario!")
+        else:
+            st.error("Por favor, escribe un comentario antes de enviarlo.")
+          
+  # Campo para el código secreto
     codigo_secreto = st.text_input("Acceso de Administrador", type="password")
     if codigo_secreto == "Bbvcg Ehzqj":  # Cambia esto por tu propio código
         try:
