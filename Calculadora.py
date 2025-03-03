@@ -188,6 +188,14 @@ def mostrar_resultados(resultados):
     """Muestra el diccionario resultados en una tabla y totales destacados."""
     # Extraer detalles
     detalles = resultados["Detalles"]
+
+    # Formatear los valores numéricos a dos decimales
+    formatted_detalles = {}
+    for key, value in detalles.items():
+        if isinstance(value, (int, float)):
+            formatted_detalles[key] = f"${value:,.2f}"  # Formato monetario con dos decimales
+        else:
+            formatted_detalles[key] = value  # Mantener como está si no es numérico
     
     # Crear DataFrame para la tabla
     df = pd.DataFrame(list(detalles.items()), columns=["Concepto", "Valor"])
