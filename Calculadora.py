@@ -3,6 +3,7 @@ import streamlit as st
 from bisect import bisect_left
 from fpdf import FPDF
 import datetime
+import unicodedata
 
 # Tablas predefinidas como diccionarios para búsquedas rápidas
 IMPUESTO_ADQUISICION = [
@@ -39,6 +40,10 @@ CONDONACION_HERENCIA = {2326313.00: 0.80, 2736839.00: 0.40}
 CONDONACION_ADQUISICION = {448061.00: 0.60, 896120.00: 0.40, 1344180.00: 0.30, 1642105.00: 0.20, 2326313.00: 0.10}
 
 # Funciones optimizadas de cálculo
+def normalize_text(text):
+    # Elimina acentos y normaliza el texto
+    return ''.join(c for c in unicodedata.normalize('NFD', text) if unicodedata.category(c) != 'Mn')
+
 def calcular_impuesto_adquisicion(valor):
     limites = [rango[0] for rango in IMPUESTO_ADQUISICION]
     idx = bisect_left(limites, valor)
@@ -61,22 +66,30 @@ def calcular_honorarios(valor):
     return adicion + (valor - lim_inf) * factor
 
 def obtener_condonacion(valor_catastral, tipo_operacion):
-    tipo_operacion = tipo_operacion.lower()
+    tipo_operacion = normalize_text(tipo_operacion.lower())
+    print(f"DEBUG: tipo_operacion normalizado = '{tipo_operacion}'")
+    
     if tipo_operacion == "herencia":
-        return next((v for k, v in sorted(CONDONACION_HERENCIA.items()) if valor_catastral <= k), 0.0)
+        for k, v in sorted(CONDONACION_HERENCIA.items()):
+            if valor_catastral <= k:
+                return v
+        return 0.0
     elif tipo_operacion == "adquisicion":
-        return next((v for k, v in sorted(CONDONACION_ADQUISICION.items()) if valor_catastral <= k), 0.0)
+        for k, v in sorted(CONDONACION_ADQUISICION.items()):
+            if valor_catastral <= k:
+                return v
+        return 0.0
     return 0.0
 
 def calcular_total(valor_operacion, valor_catastral, tipo_operacion):
     condonacion = obtener_condonacion(valor_catastral, tipo_operacion)
-
+    
     # Cálculos comunes (siempre con valor de operación)
     honorarios = calcular_honorarios(valor_operacion)
     iva = honorarios * 0.16
     erogaciones = 16000
     avaluo = (valor_operacion * 0.00195) * 1.16 if condonacion in {0, 0.10, 0.20} else 0
-
+    
     if condonacion > 0:
         # Con condonación: Usamos valor catastral para impuesto y derechos
         impuesto_con = calcular_impuesto_adquisicion(valor_catastral) * (1 - condonacion)
@@ -92,7 +105,7 @@ def calcular_total(valor_operacion, valor_catastral, tipo_operacion):
             "Condonación Aplicada": f"{condonacion * 100}%",
         }
         resultados = {"Total Con Condonación": total_con}
-
+        
         if condonacion == 0.10:
             # Sin condonación: Usamos valor de operación para impuesto y derechos
             impuesto_sin = calcular_impuesto_adquisicion(valor_operacion)
@@ -103,11 +116,8 @@ def calcular_total(valor_operacion, valor_catastral, tipo_operacion):
                 "Impuesto Sin Condonación": impuesto_sin,
                 "Derechos Sin Condonación": derechos_sin,
             })
-        else:
-            detalles.update({
-                "Impuesto Sin Condonación": "No aplica",
-                "Derechos Sin Condonación": "No aplica",
-            })
+        # No se añaden claves con 'No aplica' cuando condonacion != 0.10
+    
     else:
         # Sin condonación: Usamos valor de operación para todo
         impuesto = calcular_impuesto_adquisicion(valor_operacion)
@@ -123,9 +133,9 @@ def calcular_total(valor_operacion, valor_catastral, tipo_operacion):
             "Avalúo": avaluo,
             "Condonación Aplicada": "No aplica",
         }
-
+    
     resultados["Detalles"] = detalles
-    return resultados, condonacion  # Devolvemos también condonacion para usarlo en el PDF
+    return resultados, condonacion
 
 def generar_pdf(resultados, usuario, valor_operacion, valor_catastral, condonacion):
     pdf = FPDF()
@@ -139,7 +149,7 @@ def generar_pdf(resultados, usuario, valor_operacion, valor_catastral, condonaci
     if usuario:
         pdf.cell(0, 10, f"Realizado por: {usuario}", ln=True, align="L")
     pdf.ln(10)
-
+    
     # Información adicional sobre los valores utilizados
     pdf.set_font("Arial", "B", 12)
     pdf.cell(0, 10, "Valores Utilizados:", ln=True)
@@ -151,7 +161,7 @@ def generar_pdf(resultados, usuario, valor_operacion, valor_catastral, condonaci
     else:
         pdf.cell(0, 10, f"Valor de operación: ${valor_operacion:,.2f}", ln=True)
     pdf.ln(10)
-
+    
     # Tabla de detalles
     pdf.set_font("Arial", "B", 12)
     pdf.cell(100, 10, "Concepto", 1)
@@ -160,7 +170,7 @@ def generar_pdf(resultados, usuario, valor_operacion, valor_catastral, condonaci
     for key, value in resultados["Detalles"].items():
         pdf.cell(100, 10, key, 1)
         pdf.cell(50, 10, f"${value:,.2f}" if isinstance(value, (int, float)) else value, 1, ln=True)
-
+    
     # Totales
     pdf.ln(10)
     pdf.set_font("Arial", "B", 12)
@@ -168,7 +178,7 @@ def generar_pdf(resultados, usuario, valor_operacion, valor_catastral, condonaci
         if key != "Detalles":
             pdf.cell(100, 10, key, 1)
             pdf.cell(50, 10, f"${value:,.2f}" if isinstance(value, (int, float)) else value, 1, ln=True)
-
+    
     pdf_file = "reporte_gastos_notariales.pdf"
     pdf.output(pdf_file)
     return pdf_file
@@ -191,7 +201,7 @@ if valor_catastral_input is None:
 else:
     valor_catastral = valor_catastral_input
 
-tipo_operacion = st.selectbox("Tipo de operación:", ["Adquisición", "Herencia"], key="tipo_operacion").lower()
+tipo_operacion = st.selectbox("Tipo de operación:", ["adquisicion", "Herencia"], key="tipo_operacion").lower()
 usuario = st.text_input("Nombre del usuario (opcional):", key="usuario")
 
 if st.button("Calcular", key="calcular"):
@@ -203,4 +213,3 @@ if st.button("Calcular", key="calcular"):
     pdf_file = generar_pdf(resultados, usuario, valor_operacion, valor_catastral, condonacion)
     with open(pdf_file, "rb") as f:
         st.download_button("Imprimir (Descargar PDF)", f, file_name="reporte_gastos_notariales.pdf", key="descargar_pdf")
-        
