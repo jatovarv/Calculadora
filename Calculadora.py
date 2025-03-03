@@ -7,7 +7,7 @@ import unicodedata
 import logging
 import time
 
-# Configuramos el archivo de log para guardar todo
+# Configuramos el archivo de log para guardar las acciones
 logging.basicConfig(filename='uso_beta.log', level=logging.INFO, 
                     format='%(asctime)s - %(message)s')
 
@@ -15,45 +15,46 @@ logging.basicConfig(filename='uso_beta.log', level=logging.INFO,
 def log_action(email, action):
     logging.info(f"Usuario: {email}, Acción: {action}")
 
-# Función para medir el tiempo
-def calcular_tiempo_inicio():
-    if "start_time" not in st.session_state:
-        st.session_state["start_time"] = time.time()
+# Función para mostrar la pantalla de ingreso de correo
+def mostrar_pagina_correo():
+    st.title("Bienvenido a la Calculadora Beta")
+    st.write("Prueba BETA de la calculadora. Ingresa tu correo para continuar. Las acciones realizadas y el tiempo de uso se utilizan para mejorar la experiencia. Al registrarte, aceptas esta recopilación.")
+    email = st.text_input("Ingresa tu correo")
+    if st.button("Continuar"):
+        if email:
+            st.session_state["email"] = email
+            log_action(email, "Inicio de sesión")
+            st.session_state["start_time"] = time.time()  # Guardamos el tiempo de inicio
+            st.experimental_rerun()  # Recarga la página para mostrar la calculadora
+        else:
+            st.error("Por favor, ingresa un correo válido.")
 
-def calcular_tiempo_total():
-    if "start_time" in st.session_state:
-        tiempo_inicio = st.session_state["start_time"]
-        tiempo_fin = time.time()
-        return tiempo_fin - tiempo_inicio
-    return 0
+# Función para mostrar la calculadora
+def mostrar_calculadora():
+    st.title("Calculadora Beta")
+    st.write(f"Bienvenido, {st.session_state['email']}. Aquí está tu calculadora.")
 
-# Interfaz de la calculadora beta
-st.title("Aplicación Beta")
-st.write("Prueba BETA, ingresa una cuenta de correo, las acciones y tiempo de uso se utilizan para mejorar la experiencia. Al registrarte, aceptas esta recopilación.")
+    # Ejemplo simple de calculadora (ajusta esto a tu calculadora real)
+    numero1 = st.number_input("Ingresa el primer número", value=0.0)
+    numero2 = st.number_input("Ingresa el segundo número", value=0.0)
+    if st.button("Sumar"):
+        resultado = numero1 + numero2
+        st.write(f"El resultado es: {resultado}")
+        log_action(st.session_state["email"], f"Sumó {numero1} + {numero2} = {resultado}")
 
-# Campo para el correo
-email = st.text_input("Ingresa tu correo")
-
-if email:
-    # Registramos el inicio y empezamos a contar el tiempo
-    log_action(email, "Inicio de sesión")
-    calcular_tiempo_inicio()
-    
-    # Mensaje de bienvenida
-    st.write(f"¡Bienvenido, {email}! Usa la calculadora.")
-
-    # Ejemplo de interacción: un botón para calcular
-    if st.button("Calcular"):
-        log_action(email, "Presionó el botón 'Calcular'")
-        st.write("¡Cálculo hecho!")
-
-    # Cuando quieran terminar (opcional)
+    # Botón para terminar la sesión
     if st.button("Terminar"):
-        tiempo_total = calcular_tiempo_total()
-        log_action(email, f"Terminó la sesión - Tiempo total: {tiempo_total:.2f} segundos")
-        st.write("Gracias por probar la beta.")
+        tiempo_total = time.time() - st.session_state["start_time"]
+        log_action(st.session_state["email"], f"Terminó la sesión - Tiempo total: {tiempo_total:.2f} segundos")
+        del st.session_state["email"]
+        del st.session_state["start_time"]
+        st.experimental_rerun()  # Vuelve a la pantalla de correo
+
+# Control del flujo de la aplicación
+if "email" not in st.session_state:
+    mostrar_pagina_correo()
 else:
-    st.write("Por favor, ingresa tu correo para empezar.")
+    mostrar_calculadora()
 
 # Tablas predefinidas como diccionarios para búsquedas rápidas
 IMPUESTO_ADQUISICION = [
