@@ -125,12 +125,12 @@ def calcular_total(valor_operacion, valor_catastral, tipo_operacion):
         total = impuesto + derechos + honorarios + iva + erogaciones + avaluo
         resultados = {"Total": total}
         detalles = {
-            "Impuesto": Impuesto Sobre Adquisicion de Inmuebles,
-            "Derechos": Derechos,
-            "Honorarios": Honorarios,
-            "IVA": IVA,
-            "Erogaciones": Erogaciones,
-            "Avalúo": Avaluo,
+            "Impuesto Sobre Adquisición de Inmuebles": adquisicion,
+            "Derechos": derechos,
+            "Honorarios": honorarios,
+            "IVA": iva,
+            "Erogaciones": erogaciones,
+            "Avalúo": avaluo,
             "Condonación Aplicada": "No aplica",
         }
     
