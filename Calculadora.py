@@ -127,38 +127,6 @@ def calcular_total(valor_operacion, valor_catastral, tipo_operacion):
     resultados["Detalles"] = detalles
     return resultados
 
-# Interfaz de Streamlit
-st.title("Calculadora de Impuestos, Derechos, Gastos y Honorarios")
-st.write("Proporcione los valores para realizar su Cotización.")
-st.write("Todos los derechos reservados. Jaime Alberto Tovar.")
-
-# Campos de entrada
-col1, col2 = st.columns(2)
-with col1:
-    valor_operacion = st.number_input("Valor del inmueble (operación):", min_value=0.0, format="%f")
-with col2:
-    valor_catastral_input = st.number_input(
-        "Valor catastral (Opcional):", 
-        min_value=0.0, 
-        format="%f", 
-        value=None
-    )
-
-# Lógica para el valor catastral
-if valor_catastral_input is None:
-    valor_catastral = valor_operacion
-else:
-    valor_catastral = valor_catastral_input
-
-tipo_operacion = st.selectbox("Tipo de operación:", ["Adquisición", "Herencia"]).lower()
-usuario = st.text_input("Nombre del usuario (opcional):")
-
-if st.button("Calcular"):
-    resultados = calcular_total(valor_operacion, valor_catastral, tipo_operacion)
-    st.subheader("Resultados")
-    st.json(resultados)
-    
-# Interfaz de pdf
 def generar_pdf(resultados, usuario):
     pdf = FPDF()
     pdf.add_page()
@@ -196,19 +164,14 @@ def generar_pdf(resultados, usuario):
 # Interfaz de Streamlit
 st.title("Calculadora de Impuestos, Derechos, Gastos y Honorarios")
 st.write("Proporcione los valores para realizar su Cotización.")
-st.write("Todos los derecgos reservados. Jaime Alberto Tovar.")
+st.write("Todos los derechos reservados. Jaime Alberto Tovar.")
 
-# Campos de entrada
+# Campos de entrada con claves únicas
 col1, col2 = st.columns(2)
 with col1:
-    valor_operacion = st.number_input("Valor del inmueble (operación):", min_value=0.0, format="%f")
+    valor_operacion = st.number_input("Valor del inmueble (operación):", min_value=0.0, format="%f", key="valor_operacion")
 with col2:
-    valor_catastral_input = st.number_input(
-        "Valor catastral (Opcional):", 
-        min_value=0.0, 
-        format="%f", 
-        value=None
-    )
+    valor_catastral_input = st.number_input("Valor catastral (Opcional):", min_value=0.0, format="%f", value=None, key="valor_catastral")
 
 # Lógica para el valor catastral
 if valor_catastral_input is None:
@@ -216,15 +179,16 @@ if valor_catastral_input is None:
 else:
     valor_catastral = valor_catastral_input
 
-tipo_operacion = st.selectbox("Tipo de operación:", ["Adquisición", "Herencia"])
-usuario = st.text_input("Nombre del usuario (opcional):")
+tipo_operacion = st.selectbox("Tipo de operación:", ["Adquisición", "Herencia"], key="tipo_operacion").lower()
+usuario = st.text_input("Nombre del usuario (opcional):", key="usuario")
 
-if st.button("Calcular"):
-    resultados = calcular_total(valor_operacion, valor_catastral, tipo_operacion)  # Tu función de cálculo
+if st.button("Calcular", key="calcular"):
+    resultados = calcular_total(valor_operacion, valor_catastral, tipo_operacion)
     st.subheader("Resultados")
-    st.json(resultados)  # Mostrar resultados en pantalla
-
+    st.json(resultados)
+    
     # Generar y descargar PDF
     pdf_file = generar_pdf(resultados, usuario)
     with open(pdf_file, "rb") as f:
-        st.download_button("Imprimir (Descargar PDF)", f, file_name="reporte_gastos_notariales.pdf")
+        st.download_button("Imprimir (Descargar PDF)", f, file_name="reporte_gastos_notariales.pdf", key="descargar_pdf")
+        
