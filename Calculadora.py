@@ -58,8 +58,8 @@ def mostrar_calculadora():
         log_action(st.session_state["email"], f"Cálculo realizado - Valor operación: {valor_operacion}, Valor catastral: {valor_catastral}")
 
     # Campo para el código secreto
-    codigo_secreto = st.text_input("Código administrativo (para administradores)", type="password")
-    if codigo_secreto == "13A080306d":  # Cambia esto por tu propio código
+    codigo_secreto = st.text_input("Acceso de Administrador", type="password")
+    if codigo_secreto == "Bbvcg Ehzqj":  # Cambia esto por tu propio código
         try:
             with open('uso_beta.log', 'rb') as file:
                 st.download_button(
