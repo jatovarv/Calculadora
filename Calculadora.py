@@ -17,7 +17,7 @@ def log_action(email, action):
 
 # Función para mostrar la pantalla de ingreso de correo
 def mostrar_pagina_correo():
-    st.title("Bienvenido a la Calculadora Beta")
+    st.title("Calculadora Impuestos, Derechos, Erogaciones y Honorarios Beta")
     st.write("Prueba BETA de la calculadora. Ingresa tu correo para continuar. Las acciones realizadas y el tiempo de uso se utilizan para mejorar la experiencia. Al registrarte, aceptas esta recopilación.")
     email = st.text_input("Ingresa tu correo")
     if st.button("Continuar"):
