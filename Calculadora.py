@@ -125,12 +125,12 @@ def calcular_total(valor_operacion, valor_catastral, tipo_operacion):
         total = impuesto + derechos + honorarios + iva + erogaciones + avaluo
         resultados = {"Total": total}
         detalles = {
-            "Impuesto": impuesto,
-            "Derechos": derechos,
-            "Honorarios": honorarios,
-            "IVA": iva,
-            "Erogaciones": erogaciones,
-            "Avalúo": avaluo,
+            "Impuesto": Impuesto Sobre Adquisicion de Inmuebles,
+            "Derechos": Derechos,
+            "Honorarios": Honorarios,
+            "IVA": IVA,
+            "Erogaciones": Erogaciones,
+            "Avalúo": Avaluo,
             "Condonación Aplicada": "No aplica",
         }
     
@@ -143,7 +143,7 @@ def generar_pdf(resultados, usuario, valor_operacion, valor_catastral, condonaci
     
     # Encabezado
     pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, "Reporte de Gastos Notariales", ln=True, align="C")
+    pdf.cell(0, 10, "Calculadora de Impuestos, Derechos y Honorarios CDMX", ln=True, align="C")
     pdf.set_font("Arial", "", 12)
     pdf.cell(0, 10, f"Fecha: {datetime.date.today()}", ln=True, align="L")
     if usuario:
@@ -179,7 +179,7 @@ def generar_pdf(resultados, usuario, valor_operacion, valor_catastral, condonaci
             pdf.cell(100, 10, key, 1)
             pdf.cell(50, 10, f"${value:,.2f}" if isinstance(value, (int, float)) else value, 1, ln=True)
     
-    pdf_file = "reporte_gastos_notariales.pdf"
+    pdf_file = "cotizacion_gastos_notariales.pdf"
     pdf.output(pdf_file)
     return pdf_file
 
@@ -201,7 +201,7 @@ if valor_catastral_input is None:
 else:
     valor_catastral = valor_catastral_input
 
-tipo_operacion = st.selectbox("Tipo de operación:", ["adquisicion", "Herencia"], key="tipo_operacion").lower()
+tipo_operacion = st.selectbox("Tipo de operación:", ["Adquisicion", "Herencia"], key="tipo_operacion").lower()
 usuario = st.text_input("Nombre del usuario (opcional):", key="usuario")
 
 if st.button("Calcular", key="calcular"):
