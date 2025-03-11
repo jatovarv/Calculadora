@@ -145,7 +145,8 @@ def calcular_honorarios(valor):
     if idx == 0:
         return 0
     lim_inf, _, adicion, factor = HONORARIOS[idx - 1]
-    return adicion + (valor - lim_inf) * factor
+    honorarios_base = adicion + (valor - lim_inf) * factor
+    return honorarios_base * 1.18  # Aumenta el resultado en un 18%
 
 def obtener_condonacion(valor_catastral, tipo_operacion):
     tipo_operacion = normalize_text(tipo_operacion.lower())
