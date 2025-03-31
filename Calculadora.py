@@ -144,8 +144,17 @@ def calcular_honorarios(valor):
     idx = bisect_left(limites, valor)
     if idx == 0:
         return 0
-    lim_inf, _, adicion, factor = HONORARIOS[idx - 1]
-    honorarios_base = adicion + (valor - lim_inf) * factor
+    
+    # Si está en el último rango, usar la base acumulada del rango anterior
+    if idx == len(HONORARIOS):
+        lim_inf, _, adicion_prev, factor_prev = HONORARIOS[-2]  # Penúltimo rango
+        adicion_acumulada = HONORARIOS[-2][2]  # $85,073.00
+        lim_inf = HONORARIOS[-1][0]  # $14,566,923.01
+        factor = HONORARIOS[-1][3]  # 0.00327
+    else:
+        lim_inf, _, adicion_acumulada, factor = HONORARIOS[idx - 1]
+    
+    honorarios_base = adicion_acumulada + (valor - lim_inf) * factor
     return honorarios_base * 1.18  # Aumenta el resultado en un 18%
 
 def obtener_condonacion(valor_catastral, tipo_operacion):
